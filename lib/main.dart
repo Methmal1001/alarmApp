@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'app_navigator.dart';
-import 'screens/dashboard_screen.dart';
+import 'screens/splash_screen.dart';
 import 'state/app_state.dart';
 
 void main() {
@@ -31,7 +31,7 @@ class LocateMeApp extends StatelessWidget {
             scrolledUnderElevation: 0,
           ),
         ),
-        home: const DashboardScreen(),
+        home: const SplashScreen(),
       ),
     );
   }

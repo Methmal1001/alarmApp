@@ -134,11 +134,14 @@ class _Header extends StatelessWidget {
           Row(
             children: [
               Container(
-                width: 46,
-                height: 46,
+                width: 54,
+                height: 54,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(14),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.35), width: 1.5),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 12),
+                  ],
                 ),
                 clipBehavior: Clip.antiAlias,
                 child: Image.asset('assets/images/logo.png', fit: BoxFit.cover),

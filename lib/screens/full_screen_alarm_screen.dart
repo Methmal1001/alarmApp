@@ -43,13 +43,13 @@ class _FullScreenAlarmScreenState extends State<FullScreenAlarmScreen>
 
   void _dismiss() {
     AlarmSoundPlayer.instance.stop();
-    Navigator.of(context).maybePop();
+    Navigator.of(context).pop();
   }
 
   void _snooze() {
     AlarmSoundPlayer.instance.stop();
     widget.onSnooze?.call();
-    Navigator.of(context).maybePop();
+    Navigator.of(context).pop();
   }
 
   @override
