@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s https://pub.dev/api/packages/vibration)",
+      "Bash(export ANDROID_HOME=\"/c/Users/DELL/AppData/Local/Android/sdk\")",
+      "Bash(/c/Users/DELL/AppData/Local/Android/sdk/platform-tools/adb.exe devices *)",
+      "Bash(export MSYS_NO_PATHCONV=1)",
+      "Bash(/c/Users/DELL/AppData/Local/Android/sdk/platform-tools/adb.exe -s 192.168.5.15:34543 push 'D:\\\\Flutter\\\\build\\\\app\\\\outputs\\\\flutter-apk\\\\app-debug.apk' /sdcard/Download/alarmApp-debug.apk)",
+      "Bash(/c/Users/DELL/AppData/Local/Android/sdk/platform-tools/adb.exe -s 192.168.5.15:34543 logcat -d)",
+      "Read(//tmp/**)"
+    ]
+  }
+}
