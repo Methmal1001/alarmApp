@@ -9,12 +9,14 @@ class FullScreenAlarmScreen extends StatefulWidget {
     required this.type,
     required this.title,
     required this.subtitle,
+    this.soundAssetPath = 'sounds/alarm.wav',
     this.onSnooze,
   });
 
   final AlarmAlertType type;
   final String title;
   final String subtitle;
+  final String soundAssetPath;
   final VoidCallback? onSnooze;
 
   @override
@@ -30,7 +32,7 @@ class _FullScreenAlarmScreenState extends State<FullScreenAlarmScreen>
     super.initState();
     _pulse = AnimationController(vsync: this, duration: const Duration(seconds: 1))
       ..repeat(reverse: true);
-    AlarmSoundPlayer.instance.start();
+    AlarmSoundPlayer.instance.start(assetPath: widget.soundAssetPath);
   }
 
   @override

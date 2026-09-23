@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:geolocator/geolocator.dart';
+import '../models/alarm_sound.dart';
 import '../models/trip.dart';
 import 'location_service.dart';
 import 'notification_service.dart';
@@ -12,6 +13,11 @@ class GeofenceMonitor {
   StreamSubscription<Position>? _sub;
   final Map<String, bool> _insideZone = {};
   List<Trip> _trips = [];
+  AlarmSound _sound = AlarmSound.classic;
+
+  void updateSound(AlarmSound sound) {
+    _sound = sound;
+  }
 
   Future<void> updateTrips(List<Trip> trips) async {
     _trips = trips;
@@ -44,7 +50,7 @@ class GeofenceMonitor {
       final wasInside = _insideZone[trip.id] ?? false;
 
       if (isInside && !wasInside) {
-        NotificationService.instance.showGeofenceAlert(trip);
+        NotificationService.instance.showGeofenceAlert(trip, _sound);
       }
       _insideZone[trip.id] = isInside;
     }

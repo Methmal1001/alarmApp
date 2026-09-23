@@ -2,11 +2,14 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
+import 'package:provider/provider.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 import '../app_navigator.dart';
+import '../models/alarm_sound.dart';
 import '../models/clock_alarm.dart';
 import '../models/trip.dart';
+import '../state/app_state.dart';
 import 'alarm_sound_player.dart';
 import '../screens/full_screen_alarm_screen.dart';
 
@@ -17,7 +20,7 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
   bool _initialized = false;
 
-  static const _channelId = 'alarm_channel_v1';
+  static String _channelId(AlarmSound sound) => 'alarm_channel_${sound.id}';
 
   Future<void> init() async {
     if (_initialized) return;
@@ -42,18 +45,20 @@ class NotificationService {
     final androidPlugin = _plugin
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
 
-    await androidPlugin?.createNotificationChannel(
-      const AndroidNotificationChannel(
-        _channelId,
-        'Alarms',
-        description: 'LocateMe time and location alarms',
-        importance: Importance.max,
-        playSound: true,
-        sound: RawResourceAndroidNotificationSound('alarm'),
-        enableVibration: true,
-        audioAttributesUsage: AudioAttributesUsage.alarm,
-      ),
-    );
+    for (final sound in AlarmSound.values) {
+      await androidPlugin?.createNotificationChannel(
+        AndroidNotificationChannel(
+          _channelId(sound),
+          'Alarms (${sound.displayName})',
+          description: 'LocateMe alarms using the ${sound.displayName} tone',
+          importance: Importance.max,
+          playSound: true,
+          sound: RawResourceAndroidNotificationSound(sound.id),
+          enableVibration: true,
+          audioAttributesUsage: AudioAttributesUsage.alarm,
+        ),
+      );
+    }
 
     await androidPlugin?.requestNotificationsPermission();
     await androidPlugin?.requestExactAlarmsPermission();
@@ -64,7 +69,18 @@ class NotificationService {
     if (payload == null) return;
     final data = jsonDecode(payload) as Map<String, dynamic>;
     final type = data['type'] as String?;
+    final sound = AlarmSound.fromId(data['sound'] as String?);
     if (type == 'alarm') {
+      final id = data['id'] as String?;
+      final appState = rootNavigatorKey.currentContext?.read<AppState>();
+      ClockAlarm? alarm;
+      if (id != null && appState != null) {
+        try {
+          alarm = appState.alarms.firstWhere((a) => a.id == id);
+        } catch (_) {
+          alarm = null;
+        }
+      }
       rootNavigatorKey.currentState?.push(
         MaterialPageRoute(
           builder: (_) => FullScreenAlarmScreen(
@@ -73,6 +89,8 @@ class NotificationService {
                 ? data['label'] as String
                 : 'Alarm',
             subtitle: 'Time to wake up',
+            soundAssetPath: sound.assetPath,
+            onSnooze: alarm == null ? null : () => snoozeAlarm(alarm!, sound),
           ),
         ),
       );
@@ -83,6 +101,7 @@ class NotificationService {
             type: AlarmAlertType.geofence,
             title: 'You have arrived!',
             subtitle: 'You are near ${data['toName']}',
+            soundAssetPath: sound.assetPath,
           ),
         ),
       );
@@ -91,16 +110,16 @@ class NotificationService {
 
   int _baseId(String id) => id.hashCode & 0x7fffffff;
 
-  AndroidNotificationDetails _alarmDetails() => const AndroidNotificationDetails(
-        _channelId,
-        'Alarms',
-        channelDescription: 'LocateMe time and location alarms',
+  AndroidNotificationDetails _alarmDetails(AlarmSound sound) => AndroidNotificationDetails(
+        _channelId(sound),
+        'Alarms (${sound.displayName})',
+        channelDescription: 'LocateMe alarms using the ${sound.displayName} tone',
         importance: Importance.max,
         priority: Priority.max,
         category: AndroidNotificationCategory.alarm,
         fullScreenIntent: true,
         playSound: true,
-        sound: RawResourceAndroidNotificationSound('alarm'),
+        sound: RawResourceAndroidNotificationSound(sound.id),
         audioAttributesUsage: AudioAttributesUsage.alarm,
         visibility: NotificationVisibility.public,
         ongoing: false,
@@ -122,12 +141,17 @@ class NotificationService {
     return scheduled;
   }
 
-  Future<void> scheduleAlarm(ClockAlarm alarm) async {
+  Future<void> scheduleAlarm(ClockAlarm alarm, AlarmSound sound) async {
     await cancelAlarm(alarm.id);
     if (!alarm.isActive) return;
 
-    final payload = jsonEncode({'type': 'alarm', 'id': alarm.id, 'label': alarm.label});
-    final details = NotificationDetails(android: _alarmDetails());
+    final payload = jsonEncode({
+      'type': 'alarm',
+      'id': alarm.id,
+      'label': alarm.label,
+      'sound': sound.id,
+    });
+    final details = NotificationDetails(android: _alarmDetails(sound));
 
     if (alarm.repeatDays.isEmpty) {
       final when = _nextInstanceOfTime(alarm.hour, alarm.minute);
@@ -164,27 +188,37 @@ class NotificationService {
     }
   }
 
-  Future<void> snoozeAlarm(ClockAlarm alarm, {int minutes = 5}) async {
+  Future<void> snoozeAlarm(ClockAlarm alarm, AlarmSound sound, {int minutes = 5}) async {
     final when = tz.TZDateTime.now(tz.local).add(Duration(minutes: minutes));
-    final payload = jsonEncode({'type': 'alarm', 'id': alarm.id, 'label': alarm.label});
+    final payload = jsonEncode({
+      'type': 'alarm',
+      'id': alarm.id,
+      'label': alarm.label,
+      'sound': sound.id,
+    });
     await _plugin.zonedSchedule(
       id: _baseId(alarm.id) + 900,
       title: alarm.label.isEmpty ? 'Alarm' : alarm.label,
       body: 'Snoozed alarm',
       scheduledDate: when,
-      notificationDetails: NotificationDetails(android: _alarmDetails()),
+      notificationDetails: NotificationDetails(android: _alarmDetails(sound)),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       payload: payload,
     );
   }
 
-  Future<void> showGeofenceAlert(Trip trip) async {
-    final payload = jsonEncode({'type': 'trip', 'id': trip.id, 'toName': trip.toName});
+  Future<void> showGeofenceAlert(Trip trip, AlarmSound sound) async {
+    final payload = jsonEncode({
+      'type': 'trip',
+      'id': trip.id,
+      'toName': trip.toName,
+      'sound': sound.id,
+    });
     await _plugin.show(
       id: _baseId(trip.id),
       title: 'You have arrived!',
       body: 'You are near ${trip.toName}',
-      notificationDetails: NotificationDetails(android: _alarmDetails()),
+      notificationDetails: NotificationDetails(android: _alarmDetails(sound)),
       payload: payload,
     );
 
@@ -197,6 +231,7 @@ class NotificationService {
             type: AlarmAlertType.geofence,
             title: 'You have arrived!',
             subtitle: 'You are near ${trip.toName}',
+            soundAssetPath: sound.assetPath,
           ),
         ),
       );

@@ -1,65 +1,92 @@
 import 'package:flutter/material.dart';
 import '../models/trip.dart';
+import 'confirm_delete_dialog.dart';
 
 class TripTile extends StatelessWidget {
   const TripTile({
     super.key,
     required this.trip,
     required this.onToggle,
+    this.onTap,
     this.onDelete,
   });
 
   final Trip trip;
   final ValueChanged<bool> onToggle;
+  final VoidCallback? onTap;
   final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Card(
-      color: Colors.white,
-      margin: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onLongPress: onDelete,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+    return Dismissible(
+      key: ValueKey('trip_${trip.id}'),
+      direction: DismissDirection.endToStart,
+      confirmDismiss: (_) => confirmDelete(context, itemLabel: '${trip.fromName} → ${trip.toName}'),
+      onDismissed: (_) => onDelete?.call(),
+      background: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(20)),
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.symmetric(horizontal: 22),
+        child: const Icon(Icons.delete_outline, color: Colors.white),
+      ),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: _RoutePoint(
-                      icon: Icons.trip_origin,
-                      color: Colors.grey.shade500,
-                      label: trip.fromName,
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _RoutePoint(
+                          icon: Icons.trip_origin,
+                          color: Colors.grey.shade500,
+                          label: trip.fromName,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.edit_outlined),
+                        color: Colors.grey.shade400,
+                        onPressed: onTap,
+                      ),
+                      Switch(value: trip.isActive, onChanged: onToggle),
+                    ],
                   ),
-                  Switch(value: trip.isActive, onChanged: onToggle),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 9),
+                    child: Container(width: 2, height: 16, color: Colors.grey.shade300),
+                  ),
+                  _RoutePoint(
+                    icon: Icons.location_on_rounded,
+                    color: theme.colorScheme.primary,
+                    label: trip.toName,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(Icons.radar_rounded, size: 14, color: Colors.grey.shade500),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Alert within ${trip.radiusMeters.round()} m of destination',
+                        style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                      ),
+                    ],
+                  ),
                 ],
               ),
-              Padding(
-                padding: const EdgeInsets.only(left: 9),
-                child: Container(width: 2, height: 16, color: Colors.grey.shade300),
-              ),
-              _RoutePoint(
-                icon: Icons.location_on_rounded,
-                color: theme.colorScheme.primary,
-                label: trip.toName,
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Icon(Icons.radar_rounded, size: 14, color: Colors.grey.shade500),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Alert within ${trip.radiusMeters.round()} m of destination',
-                    style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
-                  ),
-                ],
-              ),
-            ],
+            ),
           ),
         ),
       ),

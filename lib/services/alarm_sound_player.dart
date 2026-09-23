@@ -10,11 +10,11 @@ class AlarmSoundPlayer {
 
   bool get isRinging => _ringing;
 
-  Future<void> start() async {
+  Future<void> start({String assetPath = 'sounds/alarm.wav'}) async {
     if (_ringing) return;
     _ringing = true;
     await _player.setReleaseMode(ReleaseMode.loop);
-    await _player.play(AssetSource('sounds/alarm.wav'), volume: 1.0);
+    await _player.play(AssetSource(assetPath), volume: 1.0);
     _vibrateLoop();
   }
 

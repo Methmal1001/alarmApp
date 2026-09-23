@@ -6,8 +6,7 @@ import '../widgets/clock_alarm_tile.dart';
 import '../widgets/trip_tile.dart';
 import 'select_location_screen.dart';
 import 'set_alarm_screen.dart';
-
-const bool _kDashboardMinimal = true;
+import 'settings_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -18,44 +17,11 @@ class DashboardScreen extends StatelessWidget {
     final activeAlarms = state.alarms.where((a) => a.isActive).length;
     final activeTrips = state.trips.where((t) => t.isActive).length;
 
-    if (_kDashboardMinimal) {
-      return Scaffold(
-        body: Column(
-          children: [
-            Container(
-              width: double.infinity,
-              color: Colors.red,
-              padding: const EdgeInsets.all(12),
-              child: const Text(
-                'DEBUG MARKER',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-              ),
-            ),
-            _Header(activeAlarms: activeAlarms, activeTrips: activeTrips),
-            const SizedBox(height: 20),
-            const Text(
-              'Gradient header test',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-      );
-    }
-
     return Scaffold(
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Container(
-              width: double.infinity,
-              color: Colors.red,
-              padding: const EdgeInsets.all(12),
-              child: const Text(
-                'DEBUG MARKER: if you see this red bar, base rendering works',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-              ),
-            ),
             _Header(activeAlarms: activeAlarms, activeTrips: activeTrips),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 18, 16, 96),
@@ -126,6 +92,9 @@ class DashboardScreen extends StatelessWidget {
                         trip: trip,
                         onToggle: (value) => context.read<AppState>().toggleTrip(trip.id, value),
                         onDelete: () => context.read<AppState>().removeTrip(trip.id),
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => SelectLocationScreen(existing: trip)),
+                        ),
                       ),
                     ),
                 ],
@@ -171,7 +140,8 @@ class _Header extends StatelessWidget {
                   color: Colors.white.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(Icons.location_searching_rounded, color: Colors.white, size: 24),
+                clipBehavior: Clip.antiAlias,
+                child: Image.asset('assets/images/logo.png', fit: BoxFit.cover),
               ),
               const SizedBox(width: 12),
               const Text(
@@ -180,8 +150,10 @@ class _Header extends StatelessWidget {
               ),
               const Spacer(),
               IconButton(
-                icon: const Icon(Icons.person_outline, color: Colors.white),
-                onPressed: () {},
+                icon: const Icon(Icons.settings_outlined, color: Colors.white),
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                ),
               ),
             ],
           ),
